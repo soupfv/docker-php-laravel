@@ -1,0 +1,42 @@
+FROM 192.168.99.100:5000/composer
+
+ARG DB_HOST
+ARG DB_DATABASE
+ARG DB_USERNAME
+ARG DB_PASSWORD
+
+
+
+
+# Configuration for Apache
+RUN rm -rf /etc/apache2/sites-enabled/000-default.conf
+ADD apache/000-default.conf /etc/apache2/sites-available/
+RUN ln -s /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-enabled/
+RUN a2enmod rewrite
+
+# Configuration for Cron
+ADD apache/crons.conf /etc/cron.d/crontab
+RUN chmod 0600 /etc/cron.d/crontab
+RUN touch /var/log/cron.log
+#RUN crontab
+
+
+# Add our startup script to the container. This script should be executed upon starting the container.
+ADD apache/startup.sh /var/www/startup.sh
+
+EXPOSE 80
+
+# Create app in volume and prepare migration on startup.sh
+VOLUME /var/www/html
+COPY app /var/www/html
+
+# Change working directory
+WORKDIR /var/www/html
+
+# Change your local - here it's in french
+RUN echo "locales locales/default_environment_locale select fr_FR.UTF-8" | debconf-set-selections \
+ && echo "locales locales/locales_to_be_generated multiselect 'fr_FR.UTF-8 UTF-8'" | debconf-set-selections
+RUN echo "Europe/Paris" > /etc/timezone && dpkg-reconfigure -f noninteractive tzdata
+
+CMD ["/bin/bash", "/var/www/startup.sh"]
+#CMD ["/usr/sbin/apache2ctl", "-D", "FOREGROUND"]

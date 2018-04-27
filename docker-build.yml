@@ -1,0 +1,32 @@
+version: '3'
+
+services:
+    composer_logbook:
+        image: ${LOCAL_REGISTRY}/composer_logbook
+        build:
+            context: /home/docker/projects/dockerfiles
+            dockerfile: Dockerfile_composer
+
+    laravel_logbook:
+        image: ${LOCAL_REGISTRY}/laravel_logbook
+        build:
+            context: .
+            dockerfile: Dockerfile_laravel
+            args:
+                DB_HOST: slack_bot_mariadb
+                DB_DATABASE: ${DB_DATABASE}
+                DB_USERNAME: ${DB_USERNAME}
+                DB_PASSWORD: ${DB_PASSWORD}
+
+    laravel_api_doc:
+        image: ${LOCAL_REGISTRY}/laravel_api_doc
+        build:
+            context: /home/docker/projects/dockerfiles
+            dockerfile: Dockerfile_apidoc
+
+    webpack_logbook:
+        image: ${LOCAL_REGISTRY}/webpack_logbook
+        build:
+            context: .
+            dockerfile: Dockerfile_node
+

@@ -1,0 +1,22 @@
+FROM debian:9.3-slim
+
+RUN apt-get update \
+  && apt-get install -y libpng-dev curl gnupg2
+
+RUN curl -sL https://deb.nodesource.com/setup_6.x -o nodesource_setup.sh \
+    && chmod +x nodesource_setup.sh \
+    && ./nodesource_setup.sh \
+    && apt-get -y install nodejs \
+    && apt-get -y install build-essential \
+    && rm ./nodesource_setup.sh
+
+COPY app /var/www/html
+
+WORKDIR /var/www/html
+
+RUN npm install --global cross-env
+
+COPY ./node/startup.sh /startup.sh
+
+CMD /bin/bash /startup.sh
+

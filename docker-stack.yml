@@ -1,0 +1,86 @@
+version: '3'
+
+services:
+    mariadb:
+        image: mariadb
+        networks:
+            - dev_network
+        volumes:
+            - mariadb_data:/var/lib/mysql
+        environment:
+            MYSQL_ROOT_PASSWORD: ${DB_ROOT_PASSWORD}
+            MYSQL_DATABASE: ${DB_USERNAME}
+            MYSQL_USER: ${DB_DATABASE}
+            MYSQL_PASSWORD: ${DB_PASSWORD}
+
+    laravel:
+        image: ${LOCAL_REGISTRY}/laravel_logbook
+        depends_on:
+            - mariadb
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
+        ports:
+            - 8000:80
+        networks:
+            - dev_network
+
+        volumes:
+            - application_laravel:/var/www/html
+
+    apidoc:
+        image: ${LOCAL_REGISTRY}/laravel_api_doc
+        networks:
+            - dev_network
+        volumes:
+            - application_laravel:/var/www/html
+            - ${ROOT_PATH}/api_doc/apidoc.json:/generate_api_doc/apidoc.json
+            - ${ROOT_PATH}/api_doc/header.md:/generate_api_doc/header.md
+
+    webpack:
+        image: ${LOCAL_REGISTRY}/webpack_logbook
+        networks:
+            - dev_network
+        dns:
+            - 8.8.8.8
+            - 8.8.4.4
+        environment:
+            - NODE_ENV=development
+        volumes:
+            - application_laravel:/var/www/html
+
+    phpmyadmin:
+        image: phpmyadmin/phpmyadmin
+        environment:
+            - PMA_HOSTS=mariadb
+            - PMA_VERBOSES=logbook
+            - PMA_USER=root
+            - PMA_PASSWORD=${DB_ROOT_PASSWORD}
+        depends_on:
+            - mariadb
+        ports:
+            - 8001:80
+        volumes:
+            - pma_session:/sessions
+        networks:
+            - dev_network
+
+networks:
+    dev_network:
+        driver: overlay
+
+volumes:
+    application_laravel:
+        driver: local
+        driver_opts:
+            type: none
+            device: ${ROOT_PATH}/app
+            o: bind
+
+    mariadb_data:
+        external:
+            name: '{{index .Service.Labels "com.docker.stack.namespace"}}_mariadb_master_data_Vol-{{.Task.Slot}}'
+
+    pma_session:
+        external:
+            name: '{{index .Service.Labels "com.docker.stack.namespace"}}_pma_session_Vol-{{.Task.Slot}}'
